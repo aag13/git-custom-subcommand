@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ]; then
+  echo "Error: This is not a git repository."
+  exit 1
+fi
+
+PARENT_BRANCH=$(git symbolic-ref --short HEAD)
+echo "This customizes the default 'git branch' command."
+
+if [ -n "$1" ]; then
+  echo "Given branch name: $1"
+  if git show-ref --quiet refs/heads/$1; then
+  	echo "The branch '$1' exists. So checking out '$1'."
+  	git checkout $1
+  else
+    echo "The branch '$1' does not exist. So creating '$1'."
+    if [ -n "$2" ]; then
+      echo "Parent branch name: '$2'."
+      PARENT_BRANCH="$2"
+      git branch $1 $2
+    else
+      echo "No parent branch name given. Using current one."
+      git branch $1
+    fi
+
+    PARENT_HISTORY="$(git rev-parse --show-toplevel)/.git/PARENT_HISTORY"
+    echo "Saving parent history in '$PARENT_HISTORY'"
+    echo "child branch '$1' created from parent branch '$PARENT_BRANCH'" >> $PARENT_HISTORY
+    git checkout $1
+  fi
+
+else
+  echo "No branch name provided! Cannot create new branch without a name."
+fi
